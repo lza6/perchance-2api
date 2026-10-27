@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/public/generation-identity-v2.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <meta name="referrer" content="same-origin"/>
+  <title>AI Text Plugin Verifier</title>
+
+  <script>
+    // Hidden-tab-safe wait (2026-08-24, report 4342de8a "verifying overlay never resolves"
+    // — same class fixed in the imagegen/upload embeds): browsers intensively throttle
+    // setTimeout in hidden cross-origin iframes (~1 wake/minute), stretching this embed's
+    // verify/retry delays into many minutes whenever the tab is backgrounded or the hosting
+    // pane is display:none. Worker timers are exempt; the worker terminates ~5s after the
+    // last pending wait (recreated on demand).
+    window.hiddenSafeWait = (function () {
+      let worker = null, pending = 0, reapTimer = null;
+      let seq = 0; const waiters = {};
+      function reapIfIdle() {
+        clearTimeout(reapTimer);
+        reapTimer = setTimeout(function () {
+          if (pending === 0 && worker) { try { worker.terminate(); } catch (e) {} worker = null; }
+        }, 5000);
+      }
+      function ensure() {
+        if (worker) return worker;
+        try {
+          const src = "onmessage=function(e){setTimeout(function(){postMessage(e.data.id)}, e.data.ms)}";
+          worker = new Worker(URL.createObjectURL(new Blob([src], { type: "text/javascript" })));
+          worker.onmessage = function (e) {
+            const r = waiters[e.data];
+            if (r) { delete waiters[e.data]; pending--; r(); if (pending === 0) reapIfIdle(); }
+          };
+        } catch (e) { worker = null; return null; }
+        return worker;
+      }
+      return function (ms) {
+        return new Promise(function (resolve) {
+          const w = ensure();
+          if (!w) return setTimeout(resolve, ms);
+          const id = ++seq; waiters[id] = resolve; pending++;
+          try { w.postMessage({ id: id, ms: ms }); } catch (e) { delete waiters[id]; pending--; setTimeout(resolve, ms); }
+        });
+      };
+    })();
+    // TODO: remove after debugging "stale" / "unknown_request_id" errors
+    // TODO: remove after debugging "stale" / "unknown_request_id" errors
+    // TODO: remove after debugging "stale" / "unknown_request_id" errors
+    // TODO: remove after debugging "stale" / "unknown_request_id" errors
+    // var _rollbarConfig = {
+    //     accessToken: '8ef307b3d16844d4ace8a8dd22fbcd59',
+    //     captureUncaught: true,
+    //     captureUnhandledRejections: true,
+    //     payload: {
+    //         environment: 'testenv',
+    //         // context: 'rollbar/test'
+    //         client: {
+    //           javascript: {
+    //             code_version: '1.0',
+    //             // source_map_enabled: true,
+    //             // guess_uncaught_frames: true
+    //           }
+    //         }
+    //     },
+    //     checkIgnore: function(isUncaught, args, payload) {
+    //       try {
+    //         let errStr = JSON.stringify(args)+JSON.stringify(payload?.body || {});
+    //         if (errStr.includes("AbortError")) {
+    //           return true; // ignore AbortError
+    //         }
+    //       } catch(e) { console.error(e); }
+    //       return false;
+    //     },
+    // };
+    // // Rollbar Snippet
+    // !function(r){var e={};function o(n){if(e[n])return e[n].exports;var t=e[n]={i:n,l:!1,exports:{}};return r[n].call(t.exports,t,t.exports,o),t.l=!0,t.exports}o.m=r,o.c=e,o.d=function(r,e,n){o.o(r,e)||Object.defineProperty(r,e,{enumerable:!0,get:n})},o.r=function(r){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(r,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(r,"__esModule",{value:!0})},o.t=function(r,e){if(1&e&&(r=o(r)),8&e)return r;if(4&e&&"object"==typeof r&&r&&r.__esModule)return r;var n=Object.create(null);if(o.r(n),Object.defineProperty(n,"default",{enumerable:!0,value:r}),2&e&&"string"!=typeof r)for(var t in r)o.d(n,t,function(e){return r[e]}.bind(null,t));return n},o.n=function(r){var e=r&&r.__esModule?function(){return r.default}:function(){return r};return o.d(e,"a",e),e},o.o=function(r,e){return Object.prototype.hasOwnProperty.call(r,e)},o.p="",o(o.s=0)}([function(r,e,o){"use strict";var n=o(1),t=o(5);_rollbarConfig=_rollbarConfig||{},_rollbarConfig.rollbarJsUrl=_rollbarConfig.rollbarJsUrl||"https://cdn.rollbar.com/rollbarjs/refs/tags/v2.26.0/rollbar.min.js",_rollbarConfig.async=void 0===_rollbarConfig.async||_rollbarConfig.async;var a=n.setupShim(window,_rollbarConfig),l=t(_rollbarConfig);window.rollbar=n.Rollbar,a.loadFull(window,document,!_rollbarConfig.async,_rollbarConfig,l)},function(r,e,o){"use strict";var n=o(2),t=o(3);function a(r){return function(){try{return r.apply(this,arguments)}catch(r){try{console.error("[Rollbar]: Internal error",r)}catch(r){}}}}var l=0;function i(r,e){this.options=r,this._rollbarOldOnError=null;var o=l++;this.shimId=function(){return o},"undefined"!=typeof window&&window._rollbarShims&&(window._rollbarShims[o]={handler:e,messages:[]})}var s=o(4),d=function(r,e){return new i(r,e)},c=function(r){return new s(d,r)};function u(r){return a((function(){var e=this,o=Array.prototype.slice.call(arguments,0),n={shim:e,method:r,args:o,ts:new Date};window._rollbarShims[this.shimId()].messages.push(n)}))}i.prototype.loadFull=function(r,e,o,n,t){var l=!1,i=e.createElement("script"),s=e.getElementsByTagName("script")[0],d=s.parentNode;i.crossOrigin="",i.src=n.rollbarJsUrl,o||(i.async=!0),i.onload=i.onreadystatechange=a((function(){if(!(l||this.readyState&&"loaded"!==this.readyState&&"complete"!==this.readyState)){i.onload=i.onreadystatechange=null;try{d.removeChild(i)}catch(r){}l=!0,function(){var e;if(void 0===r._rollbarDidLoad){e=new Error("rollbar.js did not load");for(var o,n,a,l,i=0;o=r._rollbarShims[i++];)for(o=o.messages||[];n=o.shift();)for(a=n.args||[],i=0;i<a.length;++i)if("function"==typeof(l=a[i])){l(e);break}}"function"==typeof t&&t(e)}()}})),d.insertBefore(i,s)},i.prototype.wrap=function(r,e,o){try{var n;if(n="function"==typeof e?e:function(){return e||{}},"function"!=typeof r)return r;if(r._isWrap)return r;if(!r._rollbar_wrapped&&(r._rollbar_wrapped=function(){o&&"function"==typeof o&&o.apply(this,arguments);try{return r.apply(this,arguments)}catch(o){var e=o;throw e&&("string"==typeof e&&(e=new String(e)),e._rollbarContext=n()||{},e._rollbarContext._wrappedSource=r.toString(),window._rollbarWrappedError=e),e}},r._rollbar_wrapped._isWrap=!0,r.hasOwnProperty))for(var t in r)r.hasOwnProperty(t)&&(r._rollbar_wrapped[t]=r[t]);return r._rollbar_wrapped}catch(e){return r}};for(var p="log,debug,info,warn,warning,error,critical,global,configure,handleUncaughtException,handleAnonymousErrors,handleUnhandledRejection,captureEvent,captureDomContentLoaded,captureLoad".split(","),f=0;f<p.length;++f)i.prototype[p[f]]=u(p[f]);r.exports={setupShim:function(r,e){if(r){var o=e.globalAlias||"Rollbar";if("object"==typeof r[o])return r[o];r._rollbarShims={},r._rollbarWrappedError=null;var l=new c(e);return a((function(){e.captureUncaught&&(l._rollbarOldOnError=r.onerror,n.captureUncaughtExceptions(r,l,!0),e.wrapGlobalEventHandlers&&t(r,l,!0)),e.captureUnhandledRejections&&n.captureUnhandledRejections(r,l,!0);var a=e.autoInstrument;return!1!==e.enabled&&(void 0===a||!0===a||"object"==typeof a&&a.network)&&r.addEventListener&&(r.addEventListener("load",l.captureLoad.bind(l)),r.addEventListener("DOMContentLoaded",l.captureDomContentLoaded.bind(l))),r[o]=l,l}))()}},Rollbar:c}},function(r,e,o){"use strict";function n(r,e,o,n){r._rollbarWrappedError&&(n[4]||(n[4]=r._rollbarWrappedError),n[5]||(n[5]=r._rollbarWrappedError._rollbarContext),r._rollbarWrappedError=null);var t=e.handleUncaughtException.apply(e,n);o&&o.apply(r,n),"anonymous"===t&&(e.anonymousErrorsPending+=1)}r.exports={captureUncaughtExceptions:function(r,e,o){if(r){var t;if("function"==typeof e._rollbarOldOnError)t=e._rollbarOldOnError;else if(r.onerror){for(t=r.onerror;t._rollbarOldOnError;)t=t._rollbarOldOnError;e._rollbarOldOnError=t}e.handleAnonymousErrors();var a=function(){var o=Array.prototype.slice.call(arguments,0);n(r,e,t,o)};o&&(a._rollbarOldOnError=t),r.onerror=a}},captureUnhandledRejections:function(r,e,o){if(r){"function"==typeof r._rollbarURH&&r._rollbarURH.belongsToShim&&r.removeEventListener("unhandledrejection",r._rollbarURH);var n=function(r){var o,n,t;try{o=r.reason}catch(r){o=void 0}try{n=r.promise}catch(r){n="[unhandledrejection] error getting `promise` from event"}try{t=r.detail,!o&&t&&(o=t.reason,n=t.promise)}catch(r){}o||(o="[unhandledrejection] error getting `reason` from event"),e&&e.handleUnhandledRejection&&e.handleUnhandledRejection(o,n)};n.belongsToShim=o,r._rollbarURH=n,r.addEventListener("unhandledrejection",n)}}}},function(r,e,o){"use strict";function n(r,e,o){if(e.hasOwnProperty&&e.hasOwnProperty("addEventListener")){for(var n=e.addEventListener;n._rollbarOldAdd&&n.belongsToShim;)n=n._rollbarOldAdd;var t=function(e,o,t){n.call(this,e,r.wrap(o),t)};t._rollbarOldAdd=n,t.belongsToShim=o,e.addEventListener=t;for(var a=e.removeEventListener;a._rollbarOldRemove&&a.belongsToShim;)a=a._rollbarOldRemove;var l=function(r,e,o){a.call(this,r,e&&e._rollbar_wrapped||e,o)};l._rollbarOldRemove=a,l.belongsToShim=o,e.removeEventListener=l}}r.exports=function(r,e,o){if(r){var t,a,l="EventTarget,Window,Node,ApplicationCache,AudioTrackList,ChannelMergerNode,CryptoOperation,EventSource,FileReader,HTMLUnknownElement,IDBDatabase,IDBRequest,IDBTransaction,KeyOperation,MediaController,MessagePort,ModalWindow,Notification,SVGElementInstance,Screen,TextTrack,TextTrackCue,TextTrackList,WebSocket,WebSocketWorker,Worker,XMLHttpRequest,XMLHttpRequestEventTarget,XMLHttpRequestUpload".split(",");for(t=0;t<l.length;++t)r[a=l[t]]&&r[a].prototype&&n(e,r[a].prototype,o)}}},function(r,e,o){"use strict";function n(r,e){this.impl=r(e,this),this.options=e,function(r){for(var e=function(r){return function(){var e=Array.prototype.slice.call(arguments,0);if(this.impl[r])return this.impl[r].apply(this.impl,e)}},o="log,debug,info,warn,warning,error,critical,global,configure,handleUncaughtException,handleAnonymousErrors,handleUnhandledRejection,_createItem,wrap,loadFull,shimId,captureEvent,captureDomContentLoaded,captureLoad".split(","),n=0;n<o.length;n++)r[o[n]]=e(o[n])}(n.prototype)}n.prototype._swapAndProcessMessages=function(r,e){var o,n,t;for(this.impl=r(this.options);o=e.shift();)n=o.method,t=o.args,this[n]&&"function"==typeof this[n]&&("captureDomContentLoaded"===n||"captureLoad"===n?this[n].apply(this,[t[0],o.ts]):this[n].apply(this,t));return this},r.exports=n},function(r,e,o){"use strict";r.exports=function(r){return function(e){if(!e&&!window._rollbarInitialized){for(var o,n,t=(r=r||{}).globalAlias||"Rollbar",a=window.rollbar,l=function(r){return new a(r)},i=0;o=window._rollbarShims[i++];)n||(n=o.handler),o.handler._swapAndProcessMessages(l,o.messages);window[t]=n,window._rollbarInitialized=!0}}}}]);
+    // // End Rollbar Snippet
+    // (async function() {
+    //   while(typeof rollbar.init === "undefined") await window.hiddenSafeWait(1000);
+    //   rollbar.init(_rollbarConfig);
+    // })();
+  </script>
+
+</head>
+<body style="background:#333; color:#efefef; font-family:sans-serif;">
+
+  <div id="statusEl" style="position:fixed; top:0; left:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+    <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="margin-right:0.5rem; filter:invert(0.9);"><style>.spinner_ajPY{transform-origin:center;animation:spinner_AtaB .75s infinite linear}@keyframes spinner_AtaB{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" opacity=".25"></path><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" class="spinner_ajPY"></path></svg>
+    <span id="messageEl">Verifying...</span>
+  </div> 
+
+  <script>
+    window.knownRequestIds = new Set();
+    window.requestIdsToStop = new Set();
+    window.requestIdKeepAliveCounts = {};
+    window.requestIdToDidTimeOut = {};
+    window.pageLoadTime = Date.now();
+
+    window.loadTokenizerFailedCount = 0;
+    window.consecutiveStrangeFailCount = 0;
+
+    const maxThreadsPerUser = Number("2");
+    const approxCharsPerTokenBase = Number("3.9");
+    const approxCharsPerTokenFrench = Number("3.4");
+
+    window.thread = 0;
+    moveToLeastRecentlyUsedThread();
+
+    window.analyticsObjs = [];
+    setInterval(async () => {
+      if(window.analyticsObjs.length > 0) {
+        if(window.analyticsObjs.length > 100) {
+          console.warn("`analyticsObjs.length > 100` - truncating.");
+          window.analyticsObjs = window.analyticsObjs.slice(-100);
+        }
+        fetch(`/api/clientPerformanceAnalytics?__cacheBust=${Math.random()}`, {
+          method: "POST",
+          body: JSON.stringify(window.analyticsObjs),
+        }).then(r => r.text()).catch(console.error);
+        window.analyticsObjs = [];
+      }
+    }, 1000*60*2);
+
+    let requestIdToLastStreamKeepAliveTime = {};
+    // listen for messages from parent window and call verifyUser if asked, and post back result
+    let alreadyVerifying = false;
+    window.addEventListener("message", async (e) => {
+      if(e.source !== window.parent) return;
+      if(!e.origin.endsWith(".perchance.org")) {
+        return;
+      }
+
+      window.perchanceGeneratorOrigin = e.origin; //e.data.perchanceGeneratorOrigin;
+
+      if(e.data.type === "preload") {  
+        verifyUser(window.thread, {lowPriority:true});  // low-priority so it doesn't trigger the iframe display
+      }
+
+      if(e.data.type === "verifyUser") {  
+        if(alreadyVerifying) return;
+        alreadyVerifying = true;
+        let failedAttempts = 0;
+        while(true) {
+          try {
+            // note: we postMessage the "verifying"/"verified" messages within verifyUser(), so they're not needed here
+            let result = await verifyUser(window.thread);
+            if(result) {
+              break;
+            } else {
+              failedAttempts += 1;
+              if(failedAttempts > 3) {
+                await window.hiddenSafeWait(20000);
+                // window.location.reload();
+              }
+            }
+          } catch(e) {
+            console.debug("verifyUser() failed. trying again in a few seconds.", e);
+          }
+          await window.hiddenSafeWait(3000);
+        }
+        alreadyVerifying = false;
+      }
+
+      if(e.data.type === "stopStream") {
+        window.requestIdsToStop.add(e.data.requestId);
+      }
+      // Server-plugin tickets: {command:"createTicket", kind:"generateText", generatorName, requestId} ->
+      // {type:"ticketCreated", requestId, ticket, expiresAt} or {type:"ticketError", requestId, error}
+      if(e.data.command === "createTicket") {
+        const replyOrigin = e.origin;
+        const requestId = e.data.requestId;
+        createTicket(e.data).then(({ticket, expiresAt}) => {
+          window.parent.postMessage({type:"ticketCreated", requestId, ticket, expiresAt}, replyOrigin);
+        }, (err) => {
+          console.error("createTicket failed:", err);
+          window.parent.postMessage({type:"ticketError", requestId, error:String(err?.message || err)}, replyOrigin);
+        });
+      }
+      // ---- vision attachments (2026-07-17) ----
+      // Convert an image Blob to a bounded, EXIF-stripped data URL.
+      // PNG-first (lossless for charts/screenshots - measured: force-JPEG costs
+      // ~3pp ChartQA); JPEG q0.88 fallback for photos over the byte cap.
+      // Bounds: 768px long side, <=200KB target, >250KB rejected.
+      const IMAGE_TOKEN_COST = 570; // must match server (560 soft tokens + framing)
+      async function encodeAttachmentBlob(blob) {
+        if(!/^image\/(png|jpeg|webp)$/.test(blob.type)) {
+          throw new Error("attachment must be a png/jpeg/webp image (got " + (blob.type || "unknown") + ")");
+        }
+        // Canvas-poisoning canary (2026-08-25, report 45d96bd3 + owner decision: keep the
+        // canvas path for EVERYONE — minimal accommodation — and only fail HONESTLY when
+        // the browser's canvas privacy protection would turn the attachment into noise;
+        // verified: Firefox resistFingerprinting returns randomized getImageData and
+        // silently-garbage toBlob in this third-party embed).
+        {
+          const cc = document.createElement("canvas"); cc.width = 2; cc.height = 1;
+          const cx = cc.getContext("2d");
+          cx.fillStyle = "#123456"; cx.fillRect(0, 0, 1, 1);
+          cx.fillStyle = "#fedcba"; cx.fillRect(1, 0, 1, 1);
+          const d = cx.getImageData(0, 0, 2, 1).data;
+          // TOLERANT compare (2026-08-25, field report: a Mac-Chrome-UA user had every
+          // attachment rejected while their page's own canvas read back clean): mild
+          // per-channel drift is normal and harmless — Brave's farbling flips low bits
+          // (its UA says "Chrome"), and color management can shift values slightly.
+          // Real poisoning (Firefox resistFingerprinting) returns RANDOM bytes, which
+          // blows way past this tolerance. Exact equality was rejecting honest browsers.
+          const expected = [0x12, 0x34, 0x56, 0xfe, 0xdc, 0xba];
+          const got = [d[0], d[1], d[2], d[4], d[5], d[6]];
+          const maxDelta = Math.max(...got.map((v, i) => Math.abs(v - expected[i])));
+          if(maxDelta > 16) {
+            throw new Error("your browser's canvas privacy protection (e.g. Firefox resistFingerprinting) blocks image processing here, so the attachment would reach the AI as noise — allow canvas access for this site (or disable fingerprinting protection for it) and try again [canary read " + got.join(",") + " expected " + expected.join(",") + "]");
+          }
+        }
+        const bitmap = await createImageBitmap(blob);
+        const scale = Math.min(1, 768 / Math.max(bitmap.width, bitmap.height));
+        const w = Math.max(1, Math.round(bitmap.width * scale));
+        const h = Math.max(1, Math.round(bitmap.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        // white background so transparent PNGs flatten predictably for JPEG
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(bitmap, 0, 0, w, h);
+        bitmap.close?.();
+        const toBlob = (type, q) => new Promise(r => canvas.toBlob(r, type, q));
+        let out = await toBlob("image/png");
+        if(!out || out.size > 200 * 1024) {
+          out = await toBlob("image/jpeg", 0.88);
+        }
+        if(!out || out.size > 250 * 1024) {
+          throw new Error("attachment image is too large after re-encoding (max 250KB)");
+        }
+        const dataUrl = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = reject;
+          fr.readAsDataURL(out);
+        });
+        return { mime: out.type, dataUrl };
+      }
+
+      if(e.data.type === "startStream") {
+        window.knownRequestIds.add(e.data.requestId);
+        requestIdToLastStreamKeepAliveTime[e.data.requestId] = Date.now();
+        let startStreamTime = Date.now();
+        console.debug("Embed got startStream request:", e.data.requestId, Date.now());
+
+        // EDIT: We're only doing this once because it's better to let /api/generate tell us to verify as needed, else slows every startStream request. It doesn't matter that we're only verifying one thread (see tokenless request in verifyUser function)
+        if(!window.doneInitialVerifyUser) {
+          window.doneInitialVerifyUser = true;
+          verifyUser(0); // don't await - since first generate call gets pass
+          // console.debug(`verifyUser done ${Date.now()-startStreamTime}ms after startStream.`);
+        }
+
+        let postData = e.data.postData;
+        if(!postData.startWith) postData.startWith = "";
+        if(!postData.instruction) postData.instruction = "";
+
+        // vision attachments: `instruction` may be an array of strings and (at
+        // most one) image Blob. Convert blobs to data URLs, build
+        // postData.instructionParts (server-authoritative), and keep
+        // postData.instruction as the concatenated TEXT for the token/trim
+        // logic below. On encode failure -> streamError to the plugin.
+        let attachmentImageCount = 0;
+        if(Array.isArray(postData.instruction)) {
+          try {
+            const parts = [];
+            for(const item of postData.instruction) {
+              if(item instanceof Blob) {
+                attachmentImageCount++;
+                if(attachmentImageCount > 1) throw new Error("only one image attachment is allowed");
+                const { mime, dataUrl } = await encodeAttachmentBlob(item);
+                parts.push({ type: "image", mime, dataUrl });
+              } else {
+                parts.push({ type: "text", text: String(item ?? "") });
+              }
+            }
+            postData.instructionParts = parts;
+            postData.instruction = parts.filter(p => p.type === "text").map(p => p.text).join("");
+          } catch(err) {
+            console.error("attachment encode failed:", err);
+            window.parent.postMessage({ type: "streamError", requestId: e.data.requestId, status: "invalid_attachment: " + (err?.message || err) }, window.perchanceGeneratorOrigin);
+            return;
+          }
+        }
+
+        // TEMPORARY (2026-08-27): collect aggregate-only middle-out sizing
+        // diagnostics. The server receives counts/path labels only, never any
+        // additional prompt text. Replace any caller-supplied value so these
+        // measurements describe this embed invocation.
+        delete postData.middleOutSizeAnalytics;
+        const middleOutSizeAnalytics = {
+          originalTotalChars: postData.instruction.length + postData.startWith.length,
+          didInitialFastMiddleOut: false,
+          didTokenMiddleOut: false,
+        };
+        const originalInstructionForDebugCollection = postData.instruction;
+        const originalStartWithForDebugCollection = postData.startWith;
+
+        if(!window.TextDecoderStream) {
+          await window.finishedLoadingPolyfillsIfNeededPromise;
+        }
+
+        const maxContextTokens = Number("8000")-1024 - (attachmentImageCount ? IMAGE_TOKEN_COST : 0);
+
+        // For the fallback if they can't load the tokenizer (see below).
+        let approxCharsPerToken = approxCharsPerTokenBase; 
+        // Adjust approxCharsPerToken estimate base on language if needed:
+        let allRequestText = postData.instruction + postData.startWith;
+        if(/\b(je|suis|le|la)\b/.test(allRequestText)) { // <-- just an optimization
+          let isLikelyFrench = [...allRequestText.matchAll(/(\b(je|suis|le|à|et|je|la|du|de)\b|é|d’|d'|t'|ê|»|«|l’|l'|s’|s'|iaux|aille)/g)].length / allRequestText.length > 0.015;
+          if(isLikelyFrench) approxCharsPerToken = approxCharsPerTokenFrench;
+        }
+
+        // 1.6x should be enough buffer for the approxCharsPerToken to be *very* wrong
+        const stringLengthThresholdForInitialFastMiddleOut = Math.round(1.6*maxContextTokens*approxCharsPerToken);
+
+        console.log("ai-text-plugin inputs:", window.structuredClone ? window.structuredClone(postData) : postData);
+
+        // This is for performance, since it can take a few seconds to tokenizer several hundred thousand characters (and since it's sync, it can block keepalive messages).
+        // TODO: do this in a chunked manner (e.g. average of 10 chat messages, as a guide) so it doesn't miss prefix cache *every* time
+        if(postData.instruction.length > stringLengthThresholdForInitialFastMiddleOut) {
+          postData.instruction = middleOutWithoutTokenizer(postData.instruction, stringLengthThresholdForInitialFastMiddleOut);
+          postData.didMiddleOut = true;
+          middleOutSizeAnalytics.didInitialFastMiddleOut = true;
+          console.warn("Did an initial 'fast' middle-out of `instruction` without tokenizer due to length:", window.structuredClone ? window.structuredClone(postData) : postData);
+        }
+        if(postData.startWith.length > stringLengthThresholdForInitialFastMiddleOut) { 
+          postData.startWith = middleOutWithoutTokenizer(postData.startWith, stringLengthThresholdForInitialFastMiddleOut);
+          postData.didMiddleOut = true;
+          middleOutSizeAnalytics.didInitialFastMiddleOut = true;
+          console.warn("Did an initial 'fast' middle-out of `startWith` without tokenizer due to length:", window.structuredClone ? window.structuredClone(postData) : postData);
+        }
+
+        let didTruncation = false;
+
+        // TODO: put tokenizer in worker.
+        let tokenizerWillBeTooSlow = false;
+        try {
+          // note: server does truncation automatically, but here we try to do a "smarter" truncation
+          if(!window.tokenizer && window.loadTokenizerFailedCount <= 2) await loadTokenizer();
+
+          try {
+            if(window.tokenizer) {
+              let fullText = postData.instruction + " " + postData.startWith;
+              let approx500TokensOfText = (Math.random().toString() + " " + fullText).slice(0, 500*approxCharsPerToken); // Math.random to ensure we miss the tokenizer's cache
+              
+              let t = performance.now();
+              let result = window.tokenizer.encode(approx500TokensOfText);
+              window.tokenizer.decode(result)
+              let approxMsPerToken = (performance.now()-t) / 500;
+              
+              let approxTotalTokensToProcess = fullText.length/approxCharsPerToken;
+              tokenizerWillBeTooSlow = approxMsPerToken*approxTotalTokensToProcess > 4000; // more than 4000ms is unacceptable jank/lag, so we fall back to a less accurate truncation
+
+              if(Math.random() < 1/20) window.analyticsObjs.push({type:"tokenizerPerformance", approxMsPerToken, approxTotalTokensToProcess, willBeTooSlow:tokenizerWillBeTooSlow});
+
+              if(tokenizerWillBeTooSlow) {
+                console.warn(`Tokenizer will be too slow. approxMsPerToken=${approxMsPerToken}ms. fullText.length=${fullText.length}. Using fallback approximate tokenization.`);
+              }
+            }
+          } catch(e) {
+            console.error("Failed to test tokenizer performance.", e);
+          }
+
+          if(window.tokenizer && !tokenizerWillBeTooSlow) {
+
+            let numTokensInInstruction = window.tokenizer.encode(postData.instruction).length;
+            let numTokensInStartWith = window.tokenizer.encode(postData.startWith).length;
+            const tokenCountBeforeTokenMiddleOut = numTokensInInstruction + numTokensInStartWith;
+            middleOutSizeAnalytics.tokenCountMethod = "exact";
+            if(middleOutSizeAnalytics.didInitialFastMiddleOut) {
+              middleOutSizeAnalytics.tokensAfterInitialFast = tokenCountBeforeTokenMiddleOut;
+            } else {
+              middleOutSizeAnalytics.originalTotalTokens = tokenCountBeforeTokenMiddleOut;
+            }
+            
+            let trimToNumTokens = maxContextTokens; // used to trim the currently-larger of `instruction` and `startWith`
+
+            console.debug(`time=${Date.now()}, initial token count:`, numTokensInInstruction + numTokensInStartWith);
+            while(numTokensInInstruction + numTokensInStartWith > maxContextTokens) {
+              console.warn(`Input text too long (${numTokensInInstruction + numTokensInStartWith} > ${maxContextTokens}). Truncating inputs using middle-out...`);
+              didTruncation = true;
+              middleOutSizeAnalytics.didTokenMiddleOut = true;
+
+              if(numTokensInInstruction > numTokensInStartWith) {
+                postData.instruction = await middleOut(postData.instruction, trimToNumTokens);
+                postData.didMiddleOut = true;
+                numTokensInInstruction = window.tokenizer.encode(postData.instruction).length;
+              } else {
+                postData.startWith = await middleOut(postData.startWith, trimToNumTokens);
+                postData.didMiddleOut = true;
+                numTokensInStartWith = window.tokenizer.encode(postData.startWith).length;
+              }
+              trimToNumTokens = Math.round(trimToNumTokens * 0.90);
+              await window.hiddenSafeWait(100); // to allow keepalive messages to be recieved
+            }
+          } else {
+            console.debug("initial token count (estimated - couldn't load tokenizer, or would take too long to process on this device):", Math.round(postData.instruction.length/approxCharsPerToken) + Math.round(postData.startWith.length/approxCharsPerToken));
+            let numTokensInInstruction = Math.round(postData.instruction.length/approxCharsPerToken);
+            let numTokensInStartWith = Math.round(postData.startWith.length/approxCharsPerToken);
+            const estimatedTokenCountBeforeTokenMiddleOut = numTokensInInstruction + numTokensInStartWith;
+            middleOutSizeAnalytics.tokenCountMethod = window.tokenizer ? "estimatedTokenizerTooSlow" : "estimatedTokenizerUnavailable";
+            if(middleOutSizeAnalytics.didInitialFastMiddleOut) {
+              middleOutSizeAnalytics.tokensAfterInitialFast = estimatedTokenCountBeforeTokenMiddleOut;
+            } else {
+              middleOutSizeAnalytics.originalTotalTokens = estimatedTokenCountBeforeTokenMiddleOut;
+            }
+            
+            // `0.9*` because approxCharsPerToken is an approximation
+            let trimToNumTokens = Math.round(0.9*maxContextTokens); // used to trim the currently-larger of `instruction` and `startWith`
+
+            while(numTokensInInstruction + numTokensInStartWith > Math.round(0.9*maxContextTokens)) {
+              console.warn(`Input text too long (${numTokensInInstruction + numTokensInStartWith} > ${Math.round(0.9*maxContextTokens)}). Truncating inputs using middle-out...`);
+              didTruncation = true;
+              middleOutSizeAnalytics.didTokenMiddleOut = true;
+
+              if(numTokensInInstruction > numTokensInStartWith) {
+                postData.instruction = middleOutWithoutTokenizer(postData.instruction, trimToNumTokens*approxCharsPerToken);
+                postData.didMiddleOut = true;
+                numTokensInInstruction =  Math.round(postData.instruction.length/approxCharsPerToken);
+              } else {
+                postData.startWith = middleOutWithoutTokenizer(postData.startWith, trimToNumTokens*approxCharsPerToken);
+                postData.didMiddleOut = true;
+                numTokensInStartWith = Math.round(postData.startWith.length/approxCharsPerToken);
+              }
+              trimToNumTokens = Math.round(trimToNumTokens * 0.95);
+            }
+          }
+        } catch(e) { console.error(e); }
+
+        if(didTruncation) {
+          console.log("truncated ai-text-plugin inputs:", postData);
+        }
+
+        // vision attachments: middle-out above may have trimmed
+        // postData.instruction (the concatenated text). The server rebuilds
+        // the prompt from instructionParts, so push the trimming back into the
+        // parts: trim the LONGEST text part until the parts total matches.
+        if(postData.instructionParts && attachmentImageCount) {
+          const targetLen = postData.instruction.length;
+          const textParts = postData.instructionParts.filter(p => p.type === "text");
+          let totalLen = textParts.reduce((a, p) => a + p.text.length, 0);
+          let guard = 0;
+          while(totalLen > targetLen && guard++ < 50) {
+            const longest = textParts.reduce((a, p) => p.text.length > a.text.length ? p : a, textParts[0]);
+            const excess = totalLen - targetLen;
+            const newLen = Math.max(0, longest.text.length - excess);
+            longest.text = middleOutWithoutTokenizer(longest.text, newLen);
+            totalLen = textParts.reduce((a, p) => a + p.text.length, 0);
+          }
+        }
+
+        postData.startWithTokenCount = window.tokenizer && !tokenizerWillBeTooSlow ? window.tokenizer.encode(postData.startWith).length : Math.round(postData.startWith.length/approxCharsPerToken);
+        postData.instructionTokenCount = window.tokenizer && !tokenizerWillBeTooSlow ? window.tokenizer.encode(postData.instruction).length : Math.round(postData.instruction.length/approxCharsPerToken);
+
+        if(postData.didMiddleOut) {
+          middleOutSizeAnalytics.finalTotalChars = postData.instruction.length + postData.startWith.length;
+          middleOutSizeAnalytics.finalReportedTokens = postData.instructionTokenCount + postData.startWithTokenCount;
+          postData.middleOutSizeAnalytics = middleOutSizeAnalytics;
+          // Tell the plugin (in the generator's frame) so it can console.warn there: AI
+          // generator-builders can only see the generator frame's console, not this embed's.
+          // Sizes/labels only - never prompt text. Older plugin versions ignore unknown types.
+          window.parent.postMessage({
+            type: "middleOut",
+            requestId: e.data.requestId,
+            originalTotalChars: middleOutSizeAnalytics.originalTotalChars,
+            finalTotalChars: middleOutSizeAnalytics.finalTotalChars,
+            originalTotalTokens: middleOutSizeAnalytics.originalTotalTokens, // undefined if the initial 'fast' middle-out ran (it runs before tokens are counted)
+            finalTotalTokens: middleOutSizeAnalytics.finalReportedTokens,
+            maxContextTokens,
+            tokenCountMethod: middleOutSizeAnalytics.tokenCountMethod,
+            didInitialFastMiddleOut: middleOutSizeAnalytics.didInitialFastMiddleOut,
+            didTokenMiddleOut: middleOutSizeAnalytics.didTokenMiddleOut,
+          }, window.perchanceGeneratorOrigin);
+          // TEMPORARY (2026-08-27): preserve the untouched text only for the
+          // server's capped, privacy-filtered general debug-request collector.
+          // Keep a conservative size ceiling so diagnostics can never make an
+          // otherwise valid generation request exceed the server body limit.
+          if(
+            "false" === "true" &&
+            middleOutSizeAnalytics.originalTotalChars <= 180000 &&
+            (middleOutSizeAnalytics.didInitialFastMiddleOut || middleOutSizeAnalytics.originalTotalTokens >= 8000)
+          ) {
+            postData.debugRequestOriginalPrompt = {
+              instruction: originalInstructionForDebugCollection,
+              startWith: originalStartWithForDebugCollection,
+            };
+          }
+        }
+
+        console.debug("token count after trimming:", postData.startWithTokenCount + postData.instructionTokenCount);
+
+        // const postDataInitiallySentToServer = JSON.parse(JSON.stringify(postData));
+        // try {
+        //   await startStreaming(postData, e.data.requestId);
+        // } catch(err) {
+        //   if(!err.toString().includes("abort_due_to_stop_stream")) {
+        //     console.warn("Network error while streaming - attempting to continue from where we left off.", err);
+        //     await window.hiddenSafeWait(10*1000); // pause a few seconds in case of server overload
+        //     window.thereWasARecentNetworkErrorWhileStreaming = true;
+        //     setTimeout(() => { window.thereWasARecentNetworkErrorWhileStreaming = false; }, 1000*60*2);
+        //     try {
+        //       let continuationPostData = JSON.parse(JSON.stringify(postDataInitiallySentToServer));
+        //       if(!continuationPostData.startWith) continuationPostData.startWith = "";
+        //       continuationPostData.startWith += requestIdToGeneratedText[e.data.requestId] || "";
+        //       continuationPostData.startWithTokenCount += Math.round((requestIdToGeneratedText[e.data.requestId] || "").length / approxCharsPerToken); // only needs to be approximate
+        //       await startStreaming(continuationPostData, e.data.requestId);
+        //     } catch(err2) {
+        //       console.error(err2); 
+        //       // try { rollbar.critical(`network_failure ${e.data.requestId} ${Date.now()}`); } catch(e) { console.error(e); }
+        //       window.parent.postMessage({ type: "streamError", requestId:e.data.requestId, status:"network_failure" }, window.perchanceGeneratorOrigin);
+        //     }
+        //   }
+        // } 
+
+        const postDataInitiallySentToServer = JSON.parse(JSON.stringify(postData));
+        const maxContinuationRetries = 5;      // <-- number of "continue from where we left off" retries
+        const continuationRetryDelayMs = 10*1000;
+        let lastErr = null;
+        for (let retryIndex = 0; retryIndex <= maxContinuationRetries; retryIndex++) {
+          try {
+            if (retryIndex === 0) { // First attempt: stream normally.
+              await startStreaming(postData, e.data.requestId);
+            } else {
+              // Retry: continue from whatever text we've already streamed to the parent.
+              console.warn(`Network error while streaming - attempting to continue from where we left off (retry ${retryIndex}/${maxContinuationRetries}).`, lastErr);
+              await window.hiddenSafeWait(continuationRetryDelayMs); // pause a few seconds in case of server overload
+              // Keep this flag "sticky" for 2 minutes after the *most recent* network error.
+              window.thereWasARecentNetworkErrorWhileStreaming = true;
+              clearTimeout(window.thereWasARecentNetworkErrorWhileStreamingResetTimeout);
+              window.thereWasARecentNetworkErrorWhileStreamingResetTimeout = setTimeout(() => { window.thereWasARecentNetworkErrorWhileStreaming = false; }, 1000*60*2);
+              const alreadyGenerated = requestIdToGeneratedText[e.data.requestId] || "";
+              let continuationPostData = JSON.parse(JSON.stringify(postDataInitiallySentToServer));
+              if (!continuationPostData.startWith) continuationPostData.startWith = "";
+              continuationPostData.startWith += alreadyGenerated;
+              // `startWithTokenCount` should exist, but guard just in case.
+              continuationPostData.startWithTokenCount = Number(continuationPostData.startWithTokenCount || 0) + Math.round(alreadyGenerated.length / approxCharsPerToken); // only needs to be approximate
+              await startStreaming(continuationPostData, e.data.requestId);
+            }
+            // Success -> done.
+            lastErr = null;
+            break;
+          } catch (err) {
+            // Don't retry stop-stream aborts.
+            if (err && err.toString && err.toString().includes("abort_due_to_stop_stream")) {
+              lastErr = null;
+              break;
+            }
+            lastErr = err;
+            // Out of retries -> surface network_failure.
+            if (retryIndex === maxContinuationRetries) {
+              console.error(err);
+              // try { rollbar.critical(`network_failure ${e.data.requestId} ${Date.now()}`); } catch(e) { console.error(e); }
+              window.parent.postMessage({ type: "streamError", requestId: e.data.requestId, status: "network_failure" }, window.perchanceGeneratorOrigin);
+            }
+            // otherwise loop continues
+          }
+        }
+
+        console.debug("Finished streaming result back to parent.");
+      } 
+
+      if(e.data.type === "streamKeepAlive") {
+        // console.debug("ai-text-plugin embed got streamKeepAlive message:", e.data.requestId);
+        window.requestIdKeepAliveCounts[e.data.requestId] = (window.requestIdKeepAliveCounts[e.data.requestId] || 0) + 1;
+        requestIdToLastStreamKeepAliveTime[e.data.requestId] = Date.now();
+        if(window.requestIdToDidTimeOut[e.data.requestId]) {
+          window.consecutiveStrangeFailCount++;
+          // try { rollbar.critical(`stale2 ${e.data.requestId} ${Date.now()}`); } catch(e) { console.error(e); }
+          window.parent.postMessage({ type: "streamError", requestId:e.data.requestId, status:"stale" }, window.perchanceGeneratorOrigin);
+        }
+        if(window.requestIdKeepAliveCounts[e.data.requestId] > 20) { // <-- just in case we happen to recieve the streamKeepAlive message before the startStream message
+          if(!window.knownRequestIds.has(e.data.requestId)) {
+            setTimeout(() => { // in case of "sync"/main-thread lag
+              if(!window.knownRequestIds.has(e.data.requestId)) {
+                window.consecutiveStrangeFailCount++;
+                // try { rollbar.critical(`unknown_request_id ${e.data.requestId} ${Date.now()}`); } catch(e) { console.error(e); }
+                window.parent.postMessage({ type: "streamError", requestId:e.data.requestId, status:"unknown_request_id" }, window.perchanceGeneratorOrigin);
+              }
+            }, 3000);
+          }
+        }
+      }
+
+      if(e.data.type === "rateGeneratedText") {
+        fetch(`/api/rateGeneratedText?__cacheBust=${Math.random()}`, {
+          method: "POST",
+          body: JSON.stringify({
+            instruction: e.data.instruction,
+            startWith: e.data.startWith,
+            generatedText: e.data.generatedText,
+            generatorName: e.data.generatorName,
+            score: e.data.score,
+            reason: e.data.reason,
+          }),
+        }).then(r => r.json()).catch(e => ({status:"fetch_failure"}));
+      }
+    });
+
+    async function middleOut(str, maxTokens) {
+      // NOTE: If you upgrade the model and the tokenizer adds a BOS token, then you need to return `window.tokenizer.decode(tokens.slice(1))` instead
+      let tokens = window.tokenizer.encode(str);
+      const len = tokens.length;
+      if(len <= maxTokens) return window.tokenizer.decode(tokens);
+
+      const numToRemove = len - maxTokens;
+      const startIdx = Math.floor((len - numToRemove) / 2);
+      
+      tokens.splice(startIdx, numToRemove, ...window.tokenizer.encode("\n\n[...]\n\n"));
+      return window.tokenizer.decode(tokens);
+    }
+
+    function middleOutWithoutTokenizer(str, maxStringLength) {
+      if(str.length <= maxStringLength) return str;
+
+      const numCharsToRemove = str.length - maxStringLength;
+      const startIndex = Math.floor((str.length - numCharsToRemove) / 2);
+
+      const arr = [...str];
+      arr.splice(startIndex, numCharsToRemove, "\n\n[...]\n\n");
+
+      return arr.join("");
+    }
+
+
+    function moveToLeastRecentlyUsedThread() {
+      let leastRecentTime = generationIdentity.storage[`threadLastUsedTime-0`] || 0;
+      let leastRecentThreadIndex = 0;
+      for(let i = 0; i < maxThreadsPerUser; i++) {
+        let lastTimeUsed = generationIdentity.storage[`threadLastUsedTime-${i}`] || 0;
+        if(lastTimeUsed < leastRecentTime) {
+          leastRecentTime = lastTimeUsed;
+          leastRecentThreadIndex = i;
+        }
+      }
+      window.thread = leastRecentThreadIndex;
+    }
+
+    generationIdentity.ready.then(() => {
+      try {
+        for(let i = 0; i < 1000; i++) {
+          generationIdentity.storage.removeItem(`threadGenerationInProgress-${window.thread}`); // it's fine if we disrupt other tabs - this is not meant to be strict/rigorous - just to hint at whether we should rotate to the next thread at the start of `startStreaming`
+        }
+      } catch(e) { console.error(e); }
+    });
+
+    function djb2Hash(str) {
+      let hash = 5381;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i); // hash * 33 + c
+      }
+      return hash >>> 0; // Convert to unsigned 32-bit
+    }
+
+    // Mints a single-use ticket that lets the page's server plugin run one generation as this user.
+    async function createTicket({kind, generatorName}) {
+      if(kind !== "generateText") throw new Error("invalid_params: unsupported ticket kind");
+      if(typeof generatorName !== "string" || !generatorName) throw new Error("invalid_params: generatorName is required");
+      await generationIdentity.ensure();
+      if(generationIdentity.storage[`threadGenerationInProgress-${window.thread}`]) moveToLeastRecentlyUsedThread();
+      const thread = window.thread;
+      generationIdentity.storage[`threadLastUsedTime-${thread}`] = Date.now(); // the ticket's generation will use this thread
+      let lastStatus = null;
+      for(let attempt = 0; attempt < 4; attempt++) {
+        const userKey = generationIdentity.storage[`userKey-${thread}`] || "";
+        const result = await fetch(`/api/createTicket?browserId=${generationIdentity.id}&userKey=${encodeURIComponent(userKey)}&thread=${thread}&__cacheBust=${Math.random()}`, {
+          method: "POST",
+          body: JSON.stringify({kind, generatorName}),
+        }).then(r => r.json()).catch(e => ({status:"network_failure"}));
+        lastStatus = result.status;
+        if(result.status === "success") return {ticket:result.ticket, expiresAt:result.expiresAt};
+        if(result.status === "invalid_key" || result.status === "need_reverification_soon") {
+          threadIndexToLastSuccessfulVerificationCheckTime[thread] = 0; // to ensure this doesn't block reverification
+          await verifyUser(thread);
+        } else if(result.status === "network_failure") {
+          await window.hiddenSafeWait(2000 + Math.random()*2000);
+        } else if(result.status === "client_update_required" || result.status === "invalid_browser_id") {
+          throw new Error("client_update_required: Please refresh the page to continue.");
+        } else if(result.status === "too_many_requests" || result.status === "too_many_tickets") {
+          throw new Error("quota_exceeded: too many requests, please try again later");
+        } else {
+          throw new Error(`service_unavailable: ${result.status}`);
+        }
+      }
+      throw new Error(lastStatus === "network_failure" ? "network_failure: couldn't reach the server" : "verification_failed: couldn't verify the user");
+    }
+
+    const requestIdToGeneratedText = {};
+
+    async function startStreaming(postData, requestId, opts={}) {
+      await generationIdentity.ensure();
+      if (window.requestIdsToStop.has(requestId)) return;
+      if(generationIdentity.storage[`threadGenerationInProgress-${window.thread}`]) {
+        moveToLeastRecentlyUsedThread(); // note: it's okay if we sometimes switch to a thread that is already being used - it'll just queue up and take a bit longer
+      }
+      let thread = window.thread;
+
+      // this is a long-running request that will return a response when the previous /api/generate request has finished.
+      // but note that there could be multiple requests waiting - but in that case /api/generate will return "waiting_for_prev_request_to_finish", and we'll wait and try again.
+      if(opts.shouldAwaitExistingGenerationRequest) {
+        let signal = window.AbortSignal && AbortSignal.timeout ? AbortSignal.timeout(1000*20) : null;
+        let result = await fetch(`/api/awaitExistingGenerationRequest?userKey=${opts.waitUserKey || generationIdentity.storage[`userKey-${thread}`]}&__cacheBust=${Math.random()}`, {signal}).then(r => r.json()).catch(e => ({status:"fetch_failure"}));
+        if(result.status === "invalid_key") {
+          threadIndexToLastSuccessfulVerificationCheckTime[thread] = 0; // to ensure this doesn't block reverification
+          await window.hiddenSafeWait(1000);
+          let success = await verifyUser(thread);
+          if(success) {
+            window.parent.postMessage({type:"verified"}, window.perchanceGeneratorOrigin);
+          } else {
+            // it's okay to not handle this because startStreaming loops if /api/generate returns invalid_key
+          }
+        } else if(result.status === "verified") {
+          window.parent.postMessage({type:"verified"}, window.perchanceGeneratorOrigin);
+        }
+        opts.shouldAwaitExistingGenerationRequest = false;
+      }
+
+      // should probably be longer than 1 second since I *think* backgrounded tabs may slow down timers (e.g. setTimeout, setInterval) to 1 per second after a bit?
+      // edit: this needs to be at least 5 seconds due to random browser lag (and potentially bugs which I've yet to track down RE slow 'keepalive' messages)
+      // increasing yet again to 10. we have requestIdsToStop now so it should be fine. probably not a lag issue that this point - maybe keepalive requests getting lost somehow, or stopping too early.
+      const requestStalenessTimeout = 10000;
+
+      if(Date.now() - requestIdToLastStreamKeepAliveTime[requestId] > requestStalenessTimeout) {
+        console.warn("Stream keep alive timeout. Ignoring this stale request.");
+        window.requestIdToDidTimeOut[requestId] = true;
+        window.consecutiveStrangeFailCount++;
+
+        // debug
+        try {
+          if(!window.recentDebugEvents) { window.recentDebugEvents = []; };
+          if(window.recentDebugEvents.length > 20) window.recentDebugEvents = window.recentDebugEvents.slice(-20);
+          window.recentDebugEvents.push({message:"Stream keep alive timeout", requestId, thread, consecutiveFails:opts.consecutiveFails, promptHashes:{instructionHash:djb2Hash(postData.instruction+""), startWithHash:djb2Hash(postData.startWith+"")}});
+        } catch(e) { console.error(e); }
+
+        // try { rollbar.critical(`stale1 ${requestId} ${Date.now()}`); } catch(e) { console.error(e); }
+        window.parent.postMessage({ type: "streamError", requestId, status:"stale" }, window.perchanceGeneratorOrigin);
+        return;
+      }
+
+      if(generationIdentity.storage.lastGenerateRequestTime === undefined) generationIdentity.storage.lastGenerateRequestTime = 0;
+      if(Date.now() - Number(generationIdentity.storage.lastGenerateRequestTime) < 500) { // safety to prevent spam in case of infinite loop somehow, including cross-frame stuff
+        await window.hiddenSafeWait(250);
+      }
+      generationIdentity.storage.lastGenerateRequestTime = Date.now();
+
+      generationIdentity.storage[`threadLastUsedTime-${thread}`] = Date.now();
+      generationIdentity.storage[`threadGenerationInProgress-${thread}`] = "1"; // <-- note: this doesn't actually have to be full-proof (e.g. it's fine if they close the page before we set this back to a falsy value), it's just to help us choose the best thread to use
+      
+      let generatedText = ""; // just for debug
+      let haveRecievedData = false;
+      let handles = {};
+
+      // we have a check within the loop below, but this is needed because it can take several seconds for the request to start, and we want to be able to abort during that time.
+      let alreadyClearedAbortCheckBeforeBeginInterval = false;
+      let abortCheckBeforeBeginInterval = setInterval(() => {
+        if(window.requestIdsToStop.has(requestId) && handles.controller) {
+          console.warn("Aborting request due to stopStream message (before request started).");
+          window.parent.postMessage({ type: "streamEnd", requestId }, window.perchanceGeneratorOrigin);
+          handles.controller.abort("abort_due_to_stop_stream");
+          clearInterval(abortCheckBeforeBeginInterval);
+
+          // debug
+          try {
+            if(!window.recentDebugEvents) { window.recentDebugEvents = []; };
+            if(window.recentDebugEvents.length > 20) window.recentDebugEvents = window.recentDebugEvents.slice(-20);
+            window.recentDebugEvents.push({message:"Stream keep alive timeout", requestId, thread, consecutiveFails:opts.consecutiveFails, promptHashes:{instructionHash:djb2Hash(postData.instruction+""), startWithHash:djb2Hash(postData.startWith+"")}});
+          } catch(e) { console.error(e); }
+
+          // debug
+          if(!window[`recentAbortedRequestIds-${thread}`]) window[`recentAbortedRequestIds-${thread}`] = [];
+          if(window[`recentAbortedRequestIds-${thread}`].length > 10) window[`recentAbortedRequestIds-${thread}`] = window[`recentAbortedRequestIds-${thread}`].slice(-10);
+          window[`recentAbortedRequestIds-${thread}`].push(requestId);            
+
+          return;
+        }
+      }, 500);
+
+      try {
+
+        let requestStartTime = Date.now();
+
+        // debug
+        if(!window.lastRequestIdByThread) window.lastRequestIdByThread = {};
+        window.lastRequestIdByThread[thread] = requestId;
+
+        // debug
+        if(!window.lastPromptHashesByThread) window.lastPromptHashesByThread = {};
+        window.lastPromptHashesByThread[thread] = {instructionHash:djb2Hash(postData.instruction+""), startWithHash:djb2Hash(postData.startWith+"")};
+
+        // debug
+        try {
+          if(!window.recentDebugEvents) { window.recentDebugEvents = []; };
+          if(window.recentDebugEvents.length > 20) window.recentDebugEvents = window.recentDebugEvents.slice(-20);
+          window.recentDebugEvents.push({message:"Stream keep alive timeout", requestId, thread, consecutiveFails:opts.consecutiveFails, promptHashes:{instructionHash:djb2Hash(postData.instruction+""), startWithHash:djb2Hash(postData.startWith+"")}});
+        } catch(e) { console.error(e); }
+
+        // debug
+        if(!window[`recentRequestStartTimes-${thread}`]) window[`recentRequestStartTimes-${thread}`] = [];
+        if(window[`recentRequestStartTimes-${thread}`].length > 10) window[`recentRequestStartTimes-${thread}`] = window[`recentRequestStartTimes-${thread}`].slice(-10);
+        window[`recentRequestStartTimes-${thread}`].push(requestStartTime);
+
+        console.debug("Starting request...", requestStartTime);
+        let userKey = generationIdentity.storage[`userKey-${thread}`] || "";
+        const generationRequest = {thread, requestId, userKey, identityId:generationIdentity.id};
+        for await (const value of eventStreamToAsyncIterator(`/api/generate?browserId=${generationIdentity.id}&userKey=${userKey}&thread=${thread}&requestId=${requestId}&__cacheBust=${Math.random()}`, postData, handles, generationRequest)) {
+          userKey = generationRequest.userKey; // May have been renewed by the response header.
+          if(!alreadyClearedAbortCheckBeforeBeginInterval) {
+            alreadyClearedAbortCheckBeforeBeginInterval = true;
+            clearInterval(abortCheckBeforeBeginInterval);
+          }
+          if(value.error === true) {
+            if(value.status === "network_busy") {
+              await window.hiddenSafeWait(2000 + Math.random()*2000);
+              if(window.requestIdsToStop.has(requestId)) return;
+              return startStreaming(postData, requestId, opts);
+            } else if(value.status === "client_update_required" || value.status === "invalid_browser_id") {
+              window.parent.postMessage({type:"streamError", requestId, status:"Please refresh the page to continue."}, window.perchanceGeneratorOrigin);
+              return;
+            } else if(value.status === "waiting_for_prev_request_to_finish") {
+              opts.waitUserKey = userKey;
+              // Give-up cap (2026-08-26, bug report: permanent "stuck on loading" wedge): this
+              // branch used to retry forever. If we've been told "waiting for previous request"
+              // for 8+ minutes AND the thread has streamed nothing for 3+ minutes (so the
+              // "previous request" is a zombie — a server-side leaked slot — not a genuinely
+              // busy stream; threadLastStreamedChunkTime is refreshed on every chunk by
+              // whichever tab is streaming), fail honestly so the plugin's error path runs
+              // instead of an infinite loading spinner. 8min sits below the plugin's 600s
+              // silent-stream backstop so the clean error path wins.
+              if(!opts.waitingForPrevSince) opts.waitingForPrevSince = Date.now();
+              if(Date.now() - opts.waitingForPrevSince > 1000*480 && Date.now() - Number(generationIdentity.storage[`threadLastStreamedChunkTime-${thread}`] || 0) > 1000*180) {
+                console.error("text gen embed: giving up on waiting_for_prev_request_to_finish after 480s with no thread stream activity (zombie previous request)");
+                try {
+                  if(!window.recentDebugEvents) { window.recentDebugEvents = []; };
+                  if(window.recentDebugEvents.length > 20) window.recentDebugEvents = window.recentDebugEvents.slice(-20);
+                  window.recentDebugEvents.push({message:"giving up on waiting_for_prev_request_to_finish (zombie previous request)", requestId, thread, currentRequestId:value.currentRequestId});
+                } catch(e) { console.error(e); }
+                window.parent.postMessage({ type: "streamError", requestId, status:"previous_request_stuck" }, window.perchanceGeneratorOrigin);
+                return;
+              }
+              if(Date.now()-window.pageLoadTime > 1000*180 && generationIdentity.storage[`threadLastStreamedChunkTime-${thread}`] && Date.now()-Number(generationIdentity.storage[`threadLastStreamedChunkTime-${thread}`]) > 120*1000) {
+                setTimeout(() => {
+                  if(Date.now()-Number(generationIdentity.storage[`threadLastStreamedChunkTime-${thread}`]) > 120*1000) {
+                    console.error("text gen embed: waitingButNotWaiting");
+                    let fetchSentTime = Date.now();
+                    fetch(`/api/waitingButNotWaiting?userKey=${userKey}&thread=${thread}&recentDebugEvents=${JSON.stringify(window.recentDebugEvents || ([]))}&instructionHash=${djb2Hash(postData.instruction+"")}&startWithHash=${djb2Hash(postData.startWith+"")}&fetchSentTime=${fetchSentTime}&lastPromptHashesByThread=${JSON.stringify(window.lastPromptHashesByThread || ({}))}&lastRequestIdByThread=${JSON.stringify(window.lastRequestIdByThread || ({}))}&recentRequestStartTimes=${JSON.stringify(window[`recentRequestStartTimes-${thread}`])}&lastChunkTimesByThread=${JSON.stringify(window.lastChunkTimesByThread || ({}))}&recentAbortedRequestIds=${JSON.stringify(window[`recentAbortedRequestIds-${thread}`])}&requestIdsToStop=${JSON.stringify(window.requestIdsToStop)}&thread=${thread}&requestId=${requestId}&currentRequestId=${value.currentRequestId}&newRequestId=${value.newRequestId}&__cacheBust=${Math.random()}`).catch(console.error);
+                  }
+                }, 1000*20); // wait a bit in case it *just* started
+              }
+              await window.hiddenSafeWait(2000);
+              opts.shouldAwaitExistingGenerationRequest = true;
+              return startStreaming(postData, requestId, opts);
+            } else if(value.status === "invalid_key") {
+              threadIndexToLastSuccessfulVerificationCheckTime[thread] = 0; // to ensure this doesn't block reverification
+              console.debug("/api/generate returned invalid_key. verifying user...");
+              await window.hiddenSafeWait(1000);
+              let result = await verifyUser(thread);
+              if(result) {
+                generationIdentity.storage[`threadLastUsedTime-${thread}`] = 0; // to hackily force usage of this just-confirmed-verified thread (since if we switch to the next one, we might have to verify that too...)
+              }
+              return startStreaming(postData, requestId, opts);
+            } else {
+              console.warn("stream error:", value.status);
+
+              // debug
+              try {
+                if(!window.recentDebugEvents) { window.recentDebugEvents = []; };
+                if(window.recentDebugEvents.length > 20) window.recentDebugEvents = window.recentDebugEvents.slice(-20);
+                window.recentDebugEvents.push({message:`stream error: value.status=${value.status}`, requestId, thread, consecutiveFails:opts.consecutiveFails, promptHashes:{instructionHash:djb2Hash(postData.instruction+""), startWithHash:djb2Hash(postData.startWith+"")}});
+              } catch(e) { console.error(e); }
+
+              if(value.status === "invalid_data") { // invalid prompt data send to server, so don't retry
+                console.error(`Error while streaming: ${value.status} Aborting. value.status:${value.status}`);
+                // try { rollbar.critical(`s1:${value.status} ${requestId} ${Date.now()}`); } catch(e) { console.error(e); }
+                window.parent.postMessage({ type: "streamError", requestId, status:value.status }, window.perchanceGeneratorOrigin);
+              } else {
+                // we retry a few times
+                if(!opts.consecutiveFails || opts.consecutiveFails <= 3) {
+                  console.warn(`Failed during streaming. Attempting continuation... haveRecievedData=${haveRecievedData} opts.consecutiveFails=${opts.consecutiveFails}`);
+                  await window.hiddenSafeWait(10000); // in case of server overload/restart
+
+                  // debug
+                  try {
+                    if(!window.recentDebugEvents) { window.recentDebugEvents = []; };
+                    if(window.recentDebugEvents.length > 20) window.recentDebugEvents = window.recentDebugEvents.slice(-20);
+                    window.recentDebugEvents.push({message:`attempting continuation after stream error`, requestId, thread, consecutiveFails:opts.consecutiveFails, promptHashes:{instructionHash:djb2Hash(postData.instruction+""), startWithHash:djb2Hash(postData.startWith+"")}});
+                  } catch(e) { console.error(e); }
+
+                  opts.consecutiveFails = (opts.consecutiveFails || 0) + 1;   
+                  // return startStreaming(postData, requestId, opts); 
+                  let continuationPostData = JSON.parse(JSON.stringify(postData));
+                  if(!continuationPostData.startWith) continuationPostData.startWith = "";
+                  continuationPostData.startWith += requestIdToGeneratedText[requestId] || "";
+                  continuationPostData.startWithTokenCount += Math.round((requestIdToGeneratedText[requestId] || "").length / approxCharsPerTokenBase); // only needs to be approximate
+                  return startStreaming(continuationPostData, requestId, opts);
+                } else {
+                  console.error("Failed to start streaming. Aborting.");
+                  // try { rollbar.critical(`s2:${value.status} ${requestId} ${Date.now()}`); } catch(e) { console.error(e); }
+                  window.parent.postMessage({ type: "streamError", requestId, status:value.status }, window.perchanceGeneratorOrigin);
+                } 
+              } 
+              break;
+            }
+          } else {
+            if(window.requestIdsToStop.has(requestId)) {
+
+              // debug
+              try {
+                if(!window.recentDebugEvents) { window.recentDebugEvents = []; };
+                if(window.recentDebugEvents.length > 20) window.recentDebugEvents = window.recentDebugEvents.slice(-20);
+                window.recentDebugEvents.push({message:`aborting request due to stopStream message haveRecievedData=${haveRecievedData}`, requestId, thread, consecutiveFails:opts.consecutiveFails, promptHashes:{instructionHash:djb2Hash(postData.instruction+""), startWithHash:djb2Hash(postData.startWith+"")}});
+              } catch(e) { console.error(e); }
+
+              console.warn("Aborting request due to stopStream message.");
+              window.parent.postMessage({ type: "streamEnd", requestId }, window.perchanceGeneratorOrigin);
+              handles.controller.abort("abort_due_to_stop_stream");
+              console.log(`(Stopped due to stopStream) generatedText=${generatedText}`);
+              return;
+            }
+            if(!haveRecievedData) {
+              if(Math.random() < 1/20) {
+                if(Date.now()-Number(generationIdentity.storage.lastRequestFinishTime || 0) < 1000*60*2) window.analyticsObjs.push({type:"ttft_withRecentRequest", timeTaken:Date.now()-requestStartTime});
+                else window.analyticsObjs.push({type:"ttft_withoutRecentRequest", timeTaken:Date.now()-requestStartTime});
+              }
+            }
+
+            // debug
+            try {
+              if(!window.lastChunkTimesByThread) window.lastChunkTimesByThread = {};
+              window.lastChunkTimesByThread[thread] = Date.now();
+            } catch(e) {}
+
+            haveRecievedData = true;
+            opts.waitingForPrevSince = null; // real data arrived — a later continuation retry that hits waiting_for_prev again must not inherit this attempt's wait clock
+            window.parent.postMessage({ type: "streamData", requestId, value }, window.perchanceGeneratorOrigin);
+            window.consecutiveStrangeFailCount = 0;
+            generatedText += value.text;
+            if(!requestIdToGeneratedText[requestId]) {
+              requestIdToGeneratedText[requestId] = "";
+              setTimeout(() => { delete requestIdToGeneratedText[requestId]; }, 1000*60*15);
+            }
+            requestIdToGeneratedText[requestId] += value.text;
+
+            generationIdentity.storage[`threadLastStreamedChunkTime-${thread}`] = Date.now();
+            
+            if(Date.now() - requestIdToLastStreamKeepAliveTime[requestId] > requestStalenessTimeout) {
+              console.warn("Aborting stale request: Stream keep alive timeout threshold reached.");
+              window.requestIdToDidTimeOut[requestId] = true;
+              // try { rollbar.critical(`stale3 ${requestId} ${Date.now()}`); } catch(e) { console.error(e); }
+              window.parent.postMessage({ type: "streamError", requestId, status:"stale" }, window.perchanceGeneratorOrigin);
+              handles.controller.abort();
+              console.warn(`(Stopped due to request being stale) generatedText=${generatedText}`);
+              return;
+            }
+          }
+        }
+
+        // debug
+        try {
+          if(!window.recentDebugEvents) { window.recentDebugEvents = []; };
+          if(window.recentDebugEvents.length > 20) window.recentDebugEvents = window.recentDebugEvents.slice(-20);
+          window.recentDebugEvents.push({message:`streamEnd generatedText.length=${generatedText.length}`, requestId, thread, consecutiveFails:opts.consecutiveFails, promptHashes:{instructionHash:djb2Hash(postData.instruction+""), startWithHash:djb2Hash(postData.startWith+"")}});
+        } catch(e) { console.error(e); }
+
+        window.parent.postMessage({ type: "streamEnd", requestId }, window.perchanceGeneratorOrigin);
+        console.log(`generatedText=${generatedText}`);
+        generationIdentity.storage.lastRequestFinishTime = Date.now();
+      } finally {
+        clearInterval(abortCheckBeforeBeginInterval);
+        generationIdentity.storage[`threadGenerationInProgress-${thread}`] = ""; // <-- note: this doesn't actually have to be full-proof, it's just to help us choose the best thread to use
+      }
+    }
+
+    // postMessage to parent with 'ready' type when dom content is loaded:
+    window.addEventListener("DOMContentLoaded", () => {
+      window.parent.postMessage({type:"embedIsReady"}, "*"); // CANNOT use window.perchanceGeneratorOrigin here because we don't know it yet
+    });
+
+    (async function() {
+      while(1) {
+        await window.hiddenSafeWait(1000*60*2);
+
+        while(document.visibilityState !== "visible") await window.hiddenSafeWait(10*1000);
+        try {
+          let result = await verifyUser(0, {lowPriority:true}); // to keep the user verified
+          if(!result) {
+            console.error("Failed to verify user.");
+            await window.hiddenSafeWait(5000);
+            await verifyUser(0); // try again
+          } else {
+            window.parent.postMessage({type:"verified"}, window.perchanceGeneratorOrigin); // we do this in verifyUser, but here also just in case
+          }
+        } catch(e) {
+          console.error(e);
+        }
+      }
+    })();
+  </script>
+
+  <script>
+    async function loadTokenizer() {
+      if(window.tokenizer) return;
+      try {
+        let tokenizer;
+        try {
+          const { Tokenizer } = await import("https://cdn.jsdelivr.net/npm/@huggingface/tokenizers@0.1.2");
+          const modelId = "deepseek-ai/DeepSeek-R1-0528";
+          
+          let tokenizerJson = await fetch(`https://huggingface.co/deepseek-ai/DeepSeek-R1-0528/resolve/main/tokenizer.json`, {signal: window.AbortSignal?.timeout(60000)}).then((res) => res.json()).catch(console.error);
+          if(!tokenizerJson) tokenizerJson = await fetch(`https://user.uploads.dev/file/f27e15b2ffa9e5098575a127b49e1145.json`, {signal: window.AbortSignal?.timeout(120000)}).then((res) => res.json()).catch(console.error);
+
+          let tokenizerConfig = await fetch(`https://huggingface.co/deepseek-ai/DeepSeek-R1-0528/resolve/main/tokenizer_config.json`, {signal: window.AbortSignal?.timeout(60000)}).then((res) => res.json()).catch(console.error);
+          if(!tokenizerConfig) tokenizerConfig = await fetch(`https://user.uploads.dev/file/db8eb69f7363289462954ddf699853ef.json`, {signal: window.AbortSignal?.timeout(120000)}).then((res) => res.json()).catch(console.error);
+
+          tokenizer = new Tokenizer(tokenizerJson, tokenizerConfig);
+        } catch(e) {
+          console.error("Loading new tokenizer failed (falling back to old one):", e);
+          // Old tokenizer:
+          let { AutoTokenizer, env } = await import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.1'); // NOTE: if you wanted to host this too I think you'd need to grab the wasm files, not just the js file
+          env.localModelPath = '/public/models/';
+          tokenizer = await AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-0528"); // CAUTION: if you change this, you need to change `approxCharsPerToken` and related server-side code,and see note at top of middleOut function in this embed.
+          let tokenizerEncodeOriginal = tokenizer.encode.bind(tokenizer);
+          tokenizer.encode = (str) => ({ids:tokenizerEncodeOriginal(str)}); // compat with new tokenizer
+        }
+
+        
+
+        // This new version also works, but haven't tested e.g. compatibility with older browsers, etc.
+        // let { AutoTokenizer, env } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6');
+        // let tokenizer = await AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-0528");
+        // tokenizer.encode("foo")
+
+        let encodeCache = new Map();
+        let decodeCache = new Map();
+        window.tokenizer = {
+          encode: function(str) {
+            let startTime;
+            if(window.performance?.now) startTime = performance.now();
+
+            let tokens = tokenizer.encode(str).ids;
+            
+            if(startTime) {
+              let timeTaken = performance.now()-startTime;
+              if(timeTaken > 100) console.warn(`tokenizer.encode() took ${timeTaken}ms`);
+            }
+            return tokens;
+          },
+          decode: function(tokens) {
+            let startTime;
+            if(window.performance?.now) startTime = performance.now();
+
+            let str = tokenizer.decode(tokens);
+            
+            if(startTime) {
+              let timeTaken = performance.now()-startTime;
+              if(timeTaken > 100) console.warn(`tokenizer.decode() took ${timeTaken}ms`);
+            }
+            return str;
+          },
+        };
+      } catch(e) {
+        console.error("Failed to load tokenizer.", e);
+        messageEl.innerText = "Tokenizer failed!";
+        window.loadTokenizerFailedCount = (window.loadTokenizerFailedCount || 0) + 1;
+      }
+    }
+    loadTokenizer();
+  </script>
+
+  <script>
+    // async function* eventStreamToAsyncIterator(url, postData) {
+    //   const response = await fetch(url, {
+    //     method: "POST",
+    //     body: JSON.stringify(postData),
+    //   });
+    //   if(response.status !== 200) {
+    //     let status = "error: "+response.status;
+    //     try { status = (await response.json()).status; } catch(e) {}
+    //     yield {error:true, status};
+    //     return;
+    //   }
+
+    //   const readableStream = response.body.pipeThrough(new TextDecoderStream());
+    //   const reader = readableStream.getReader();
+
+    //   while (true) {
+    //     const { done, value } = await reader.read();
+    //     if (done) break;
+    //     yield value;
+    //   }
+    // }
+
+    async function* eventStreamToAsyncIterator(url, postData, handles={}, opts={}) {
+
+      let started = false;
+      let finished = false;
+      let connectionTimeout;
+      let connectionTimeoutActive = true;
+      try {
+        const controller = new AbortController(); 
+        const signal = controller.signal;
+        handles.controller = controller; // this gives the caller of this function the ability to abort this stream
+
+        let connectionTimeoutLength = 1000*60;
+        if(window.thereWasARecentNetworkErrorWhileStreaming) connectionTimeoutLength = 1000*90; // may indicate server restart, so need to give it a bit more time.
+
+        connectionTimeout = setTimeout(async () => {
+          if(!connectionTimeoutActive || started || finished || signal.aborted) return;
+          
+          let { stillWorking } = await fetch(`/api/checkRequestId?requestId=${opts.requestId}&userKey=${opts.userKey}`).then(r => r.json()).catch(e => ({stillWorking:false}));
+          if(!connectionTimeoutActive || started || finished || signal.aborted) return; // the status query may finish after headers
+          if(stillWorking) await window.hiddenSafeWait(1000*60); // maybe under heavy load, so give it more time
+          
+          if(!connectionTimeoutActive || started || finished || signal.aborted) return; // status fetch may outlive the pre-header wait
+          console.warn("ABORTING DUE TO CONNECTION TIMEOUT", connectionTimeoutLength);
+          controller.abort();
+        }, connectionTimeoutLength);
+
+        // if aborted by parent function via `handles`, the clear timeout:
+        signal.addEventListener("abort", () => {
+          connectionTimeoutActive = false;
+          clearTimeout(connectionTimeout);
+        });
+
+        // Body inactivity starts at response headers, even if no body byte has
+        // arrived. The server withholds its old blank-line first byte so it can
+        // retry an unstreamed Cloudflare error; headers alone must still arm a
+        // timeout. Each body chunk resets it, preserving long active streams.
+        // hiddenSafeWait handles hidden-iframe timer throttling.
+        var lastStreamActivityTime = Date.now();
+        let bodyWatchdogArmed = false;
+        (async () => {
+          while(!finished && !signal.aborted) {
+            await window.hiddenSafeWait(5000);
+            if(finished || signal.aborted) break;
+            if(bodyWatchdogArmed && Date.now() - lastStreamActivityTime > 60000) {
+              console.warn("ABORTING DUE TO RESPONSE BODY STALL (no bytes for 60s)");
+              controller.abort();
+              break;
+            }
+          }
+        })();
+
+        const response = await fetch(url, {
+          signal,
+          method: "POST",
+          body: JSON.stringify(postData),
+        });
+        connectionTimeoutActive = false;
+        clearTimeout(connectionTimeout);
+        lastStreamActivityTime = Date.now();
+        bodyWatchdogArmed = true;
+
+        if(response.headers.get("x-new-user-key") && opts.thread !== undefined) {
+          const newKey = response.headers.get("x-new-user-key");
+          opts.userKey = newKey; // This request owns the key even if the shared cache moved on.
+          generationIdentity.setKey(opts.thread, newKey, opts.identityId);
+        }
+        if(response.headers.get("x-should-reverify") === "1") {
+          console.debug("x-should-reverify header found. re-verifying user in the background while generating...");
+          (async function() {
+            let result = await verifyUser(0, {lowPriority:true});
+            if(result) {
+              console.debug("Re-verified user.");
+            } else {
+              console.error("Failed to re-verify user.");
+            }
+          })();
+        }
+
+        if(response.status !== 200) {
+          const json = await response.json().catch(e => ({status:`${response.status}`}));
+          yield { error:true, ...json };
+          return;
+        }
+
+        if(window.TextDecoderStream) {
+          const textStream = response.body.pipeThrough(new window.TextDecoderStream());
+          const reader = textStream.getReader();
+          let buffer = "";
+
+          while(true) {
+            const { done, value } = await reader.read();
+            lastStreamActivityTime = Date.now();
+            if(done) break;
+            started = true;
+
+            buffer += value;
+            let lineEndIndex;
+
+            while((lineEndIndex = buffer.indexOf('\n')) >= 0) {
+              const line = buffer.slice(0, lineEndIndex).trim();
+              buffer = buffer.slice(lineEndIndex + 1);
+
+              if(line.startsWith('t:')) { // custom, more-efficient protocol
+                const text = JSON.parse(line.slice(2));
+                yield {text};
+              } else if(line.startsWith('data:')) {
+                const jsonData = JSON.parse(line.slice(5).trim());
+                yield jsonData;
+              } 
+            }
+          }
+        } else {
+          // for Safari 14:
+          const reader = response.body.getReader();
+          let buffer = "";
+          let textDecoder = new TextDecoder();
+
+          while(true) {
+            const { done, value } = await reader.read();
+            lastStreamActivityTime = Date.now();
+            if(done) break;
+            started = true;
+
+            const chunk = textDecoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            let lineEndIndex;
+            while((lineEndIndex = buffer.indexOf('\n')) >= 0) {
+              const line = buffer.slice(0, lineEndIndex).trim();
+              buffer = buffer.slice(lineEndIndex + 1);
+
+              if(line.startsWith('t:')) { // custom, more-efficient protocol
+                const text = JSON.parse(line.slice(2));
+                yield {text};
+              } else if(line.startsWith('data:')) {
+                const jsonData = JSON.parse(line.slice(5).trim());
+                yield jsonData;
+              }
+            }
+          }
+        }
+      } finally {
+        finished = true;
+        connectionTimeoutActive = false;
+        clearTimeout(connectionTimeout);
+      }
+    }
+  </script>
+
+  <script>
+
+    // Hacky guard against bugs where the parent doesn't recieve the 'verified' message (and hence shows "verifying" thing forever) due to some bug in the verification process or something.
+    {
+      let consecutiveNotVerifyingNowOrRecently = 0;
+      setInterval(() => {
+        if(Object.values(window.threadIndexToCurrentlyVerifyingUserPromise).filter(v => v).length === 0 && Object.values(window.threadIndexVerifyingUserStartTime).filter(time => Date.now()-time < 30*1000).length === 0) {
+          if(consecutiveNotVerifyingNowOrRecently > 10) {
+            consecutiveNotVerifyingNowOrRecently = 0;
+            window.parent.postMessage({type:"verified"}, window.perchanceGeneratorOrigin);
+          }
+        }
+      }, 5000);
+    }
+
+    window.consecutiveTurnstileErrors = 0;
+    window.threadIndexToCurrentlyVerifyingUserPromise = {};
+    window.threadIndexVerifyingUserStartTime = {};
+    window.onloadTurnstilePromise = new Promise(resolve => {
+      window.onloadTurnstileResolver = resolve;
+    });
+    window.onloadTurnstileCallback = function() {
+      window.onloadTurnstileResolver();
+    };
+    
+    window.consecutiveTurnstileTimeouts = 0;
+    window.threadIndexToLastSuccessfulVerificationCheckTime = {};
+    window.threadIndexToLastVerificationAttemptTime = {};
+    async function verifyUser(thread, opts={}) {
+      const verificationIdentityId = await generationIdentity.ensure();
+      if(window.threadIndexToCurrentlyVerifyingUserPromise[thread]) {
+        if(Date.now()-window.threadIndexVerifyingUserStartTime[thread] > 1000*60) {
+          console.warn("existing verification underway, but it's been going for a strangely long time. reloading page.");
+          window.location.reload();
+        } else {
+          console.debug("existing verification underway, awaiting that one's promise.");
+          return window.threadIndexToCurrentlyVerifyingUserPromise[thread];
+        }
+      }
+
+      if(threadIndexToLastSuccessfulVerificationCheckTime[thread] === undefined) threadIndexToLastSuccessfulVerificationCheckTime[thread] = 0;
+
+      window.threadIndexVerifyingUserStartTime[thread] = Date.now();
+      window.threadIndexToCurrentlyVerifyingUserPromise[thread] = new Promise(async (resolve) => {
+        try {
+          // check if we're already verified:
+          if(generationIdentity.storage[`userKey-${thread}`]) {
+            if(Date.now()-threadIndexToLastSuccessfulVerificationCheckTime[thread] < 15*1000) { // this can be relatively high thanks to "need_reverification_soon" stuff, which should reverify *well* before needed, and even if it doesn't in rare cases it's not a problem because /api/generate will just tell us to revalidate
+              console.debug("Already checked verification in last 15 seconds.");
+              window.parent.postMessage({type:"verified"}, window.perchanceGeneratorOrigin);
+              resolve(generationIdentity.storage[`userKey-${thread}`]);
+              return;
+            }
+            let fetchOptions = {};
+            if(window.AbortSignal && AbortSignal.timeout) fetchOptions.signal = AbortSignal.timeout(1000*10);
+            let result = await fetch(`/api/checkUserVerificationStatus?userKey=${encodeURIComponent(generationIdentity.storage[`userKey-${thread}`])}&__cacheBust=${Math.random()}`, fetchOptions).then(r => r.json()).catch(e => ({status:"fetch_failure"}));
+            if(result.status === "verified") {
+              console.debug("Already verified.");
+              window.parent.postMessage({type:"verified"}, window.perchanceGeneratorOrigin);
+              threadIndexToLastSuccessfulVerificationCheckTime[thread] = Date.now(); 
+              resolve(generationIdentity.storage[`userKey-${thread}`]);
+              return;
+            } else if(result.status === "need_reverification_soon") {
+              // we DON'T send the 'verified' signal to the parent, because that would hide the iframe, which would likely make the reverification that we're about to do fail
+              console.debug("Need reverification soon, so doing it now.");
+            } else {
+              console.debug("not verified:", result);
+            }
+          }
+
+          // repeatedly try tokenless verification while there was a recent verification attempt 
+          let result;
+          while(1) {
+            let fetchOptions = {};
+            if(window.AbortSignal && AbortSignal.timeout) fetchOptions.signal = AbortSignal.timeout(1000*30);
+            result = await fetch(`/api/verifyUser?browserId=${generationIdentity.id}&thread=${thread}&__cacheBust=${Math.random()}`, fetchOptions).then(r => r.json()).catch(e => ({status:"fetch_failure"}));
+            console.debug(`Attempted tokenless verification again. Result:`, result);
+            if(result.status === "success" || result.status === "already_verified") break;
+            await window.hiddenSafeWait(1000 + 1000*2*Math.random());
+            if(result.status === "fetch_failure") {
+              await window.hiddenSafeWait(4000 + 1000*2*Math.random());
+              continue;
+            }
+            if(Date.now()-(window.lastVerificationStartTime || 0) > 10_000 && Date.now()-Number(localStorage[`anotherEmbedIsVerifying_lastActiveTime`] || 0) > 5_000) break;
+          }
+
+          if(result.status !== "success" && result.status !== "already_verified") {
+            window.lastVerificationStartTime = Date.now();
+            
+            console.debug("Doing turnstile verification..."); 
+
+            if(threadIndexToLastVerificationAttemptTime[thread] && Date.now()-threadIndexToLastVerificationAttemptTime[thread] < 1000*10) {
+              await window.hiddenSafeWait(1000*15); // pause for a bit to avoid spamming cloudflare
+            }
+            threadIndexToLastVerificationAttemptTime[thread] = Date.now();
+
+            if(!window.alreadyLoadedTurnstile) {
+              let script = document.createElement("script");
+              script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback";
+              script.defer = true;
+              script.onerror = () => {
+                statusEl.innerHTML=`<span style='color:red; font-size:0.75rem; text-align:center;'><b>challenges.cloudflare.com</b><br>is blocked?</span>`;
+                fetch(`/api/verificationDebug?status=fail`);
+                if(!window.__sentTurnstileScriptLoadFailBeacon) { // once per page load - server tallies these to spot cloudflare breakage
+                  window.__sentTurnstileScriptLoadFailBeacon = true;
+                  try { fetch(`/api/verificationDebug?status=client-script-load-fail`); } catch(e) {}
+                }
+                setTimeout(() => window.location.reload(), 1000*10);
+              };
+              document.body.appendChild(script);
+              await window.onloadTurnstilePromise;
+              if(window.turnstile) {
+                window.alreadyLoadedTurnstile = true;
+              }
+            }
+
+            // tell parent to display this iframe to ensure verification succeeds, but if this is a "low priority" verification (e.g. just part of reverification loop, not during page load), then we delay it for a bit, hoping that the verification succeeds without needing to show the iframe.
+            if(opts.lowPriority) {
+              window.verifyingPostMessageTimeout = setTimeout(() => {
+                window.parent.postMessage({type:"verifying"}, window.perchanceGeneratorOrigin);
+              }, 1000*20);
+            } else {
+              window.verifyingPostMessageTimeout = setTimeout(() => {
+                window.parent.postMessage({type:"verifying"}, window.perchanceGeneratorOrigin);
+              }, 1000*4);
+            }
+
+            let tokenPromise = new Promise((res, rej) => {
+              window["cloudflareTurnstileTokenResolver-"+thread] = res;
+              window["cloudflareTurnstileTokenRejecter-"+thread] = rej;
+            });
+
+            await window.hiddenSafeWait(10);
+
+            window.turnstileWidgetId = window.turnstile.render('#cfTurnstileCtn-'+thread, {
+              sitekey: '0x4AAAAAAAJn3pYzPx4ATVOt',
+              callback: function(token) {
+                window.consecutiveTurnstileErrors = 0;
+                console.debug("✅ Got turnstile token:", token);
+                window["cloudflareTurnstileTokenResolver-"+thread](token);
+              },
+              "error-callback": function(...args) {
+                console.error("❌ Turnstile error callback fired:", ...args);
+                window.consecutiveTurnstileErrors++;
+                if(window.consecutiveTurnstileErrors >= 2) {
+                  window.location.reload();
+                }
+                let originalStatusElHtml = statusEl.innerHTML;
+                // statusEl.innerHTML = `<span style='color:red; font-size:0.75rem; text-align:center;'><b>verification failed</b></span>`;
+                statusEl.innerHTML = `<span style="font-size:0.68rem; text-align:center;"><b style="color:red;">verification failed</b> idk but try clicking this box while it verifies</span>`;
+                setTimeout(() => {
+                  statusEl.innerHTML = originalStatusElHtml;
+                }, 1000*5);
+                window.parent.postMessage({type:"verifying"}, window.perchanceGeneratorOrigin);
+                window["cloudflareTurnstileTokenRejecter-"+thread](...args);
+                try { fetch(`/api/verificationDebug?status=error-callback&args=${encodeURIComponent(JSON.stringify(args))}`); } catch(e) { console.error(e); }
+              },
+            });
+
+            let waitedSeconds = 0;
+            let waitLogInterval = setInterval(() => {
+              let ctnString = document.querySelector(`#cfTurnstileCtn-${thread}`).innerHTML.trim();
+              window.lastActivelyVerifyingTime = Date.now();
+              console.debug("Waiting for token...", waitedSeconds, ctnString.slice(0, 10));
+              waitedSeconds++;
+              if(waitedSeconds === 5 && ctnString === "") { // I think cloudflare (sometimes??) doesn't render the widget if a separate verification is already in progress.
+                window["cloudflareTurnstileTokenResolver-"+thread](null);
+              }
+              if(waitedSeconds > 60) { // sometimes cloudflare can 'hang' indefinitely for some reason, so in that case we just cancel it
+                window["cloudflareTurnstileTokenResolver-"+thread](null);
+                if(!window.__sentTurnstileTimeoutBeacon) { // once per page load - server tallies these to spot cloudflare breakage
+                  window.__sentTurnstileTimeoutBeacon = true;
+                  try { fetch(`/api/verificationDebug?status=client-timeout`); } catch(e) {}
+                }
+                window.consecutiveTurnstileTimeouts++;
+                if(window.consecutiveTurnstileTimeouts >= 2) {
+                  window.location.reload();
+                }
+              }
+            }, 1000);
+            
+            let token = await tokenPromise.catch(e => { console.error(e); return null; });
+
+            if(token !== null) window.consecutiveTurnstileTimeouts = 0;
+            
+            clearInterval(waitLogInterval);
+            clearTimeout(window.verifyingPostMessageTimeout);
+            try { window.turnstile.remove(window.turnstileWidgetId); } catch(e) { console.error("turnstile.remove() failed:", e); }
+
+            if(token === null) {
+              await window.hiddenSafeWait(3000); // pause for a bit if we failed - to avoid spamming cloudflare
+              resolve(false);
+              return;
+            }
+
+            let fetchOptions = {};
+            if(window.AbortSignal && AbortSignal.timeout) fetchOptions.signal = AbortSignal.timeout(1000*15);
+
+            result = await fetch(`/api/verifyUser?browserId=${generationIdentity.id}&token=${encodeURIComponent(token)}&thread=${thread}&__cacheBust=${Math.random()}`, fetchOptions).then(r => r.json()).catch(e => ({status:"fetch_failure"}));
+          }
+
+          clearTimeout(window.verifyingPostMessageTimeout);
+          
+          if(result.status === "success" || result.status === "already_verified") {
+            if (!generationIdentity.setKey(thread, result.userKey, verificationIdentityId)) { resolve(false); return; }
+            console.debug("Verification succeeded.");
+            resolve(generationIdentity.storage[`userKey-${thread}`]);
+            window.parent.postMessage({type:"verified"}, window.perchanceGeneratorOrigin);
+            if(result.attemptedFullVerification) fetch(`/api/verificationDebug?status=success`);
+          } else {
+            if(result.attemptedFullVerification) fetch(`/api/verificationDebug?status=fail`);
+            console.debug("Turnstile verification failed.", result);
+            resolve(false);
+          }
+        } catch(e) {
+          clearTimeout(window.verifyingPostMessageTimeout);
+          console.error("caught verification error of some kind:", e);
+          resolve(false);
+          fetch(`/api/verificationDebug?status=fail`);
+        }
+      });
+
+      let result = await window.threadIndexToCurrentlyVerifyingUserPromise[thread].catch(e => { console.error(e); return false; });
+      window.threadIndexToCurrentlyVerifyingUserPromise[thread] = null;
+
+      return result;
+    }
+  </script>
+
+  <div id="cfTurnstileCtn-0"></div>
+  <div id="cfTurnstileCtn-1"></div>
+  <div id="cfTurnstileCtn-2"></div>
+  <div id="cfTurnstileCtn-3"></div>
+  <div id="cfTurnstileCtn-4"></div>
+  <div id="cfTurnstileCtn-5"></div>
+  <div id="cfTurnstileCtn-6"></div>
+  <div id="cfTurnstileCtn-7"></div>
+  <div id="cfTurnstileCtn-8"></div>
+  <div id="cfTurnstileCtn-9"></div>
+  <div id="cfTurnstileCtn-10"></div>
+  <div id="cfTurnstileCtn-11"></div>
+  <div id="cfTurnstileCtn-12"></div>
+  <div id="cfTurnstileCtn-13"></div>
+  <div id="cfTurnstileCtn-14"></div>
+  <div id="cfTurnstileCtn-15"></div>
+  <div id="cfTurnstileCtn-16"></div>
+  <!-- <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onloadTurnstileCallback" defer onerror="statusEl.innerHTML=`<span style='color:red; font-size:0.75rem; text-align:center;'><b>challenges.cloudflare.com</b><br>is blocked?</span>`; fetch(`/api/verificationDebug?status=fail`); setTimeout(() => window.location.reload(), 1000*5);"></script> -->
+
+  <script>
+    {
+      let resolver;
+      window.finishedLoadingPolyfillsIfNeededPromise = new Promise(r => resolver=r);
+      (async function() {
+        if(!window.TransformStream) {
+          await import("https://unpkg.com/web-streams-polyfill/dist/polyfill.min.js");
+        }
+        // this TextDecoderStream polyfill: https://github.com/GoogleChromeLabs/text-encode-transform-polyfill/blob/master/text-encode-transform.js doesn't work for some reason - i get "TypeError: |this| is not a Promise"
+        resolver();
+      })();
+    }
+  </script>
+  
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" data-cf-beacon='{"version":"2024.11.0","token":"fc685cb0ca0145b3acbca350b7d29943","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
